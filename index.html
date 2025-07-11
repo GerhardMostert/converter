@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KML to JOB Converter</title>
+</head>
+<body>
+  <h2>KML to JOB Converter</h2>
+  <input type="file" id="kmlFile" accept=".kml" />
+  <button onclick="convertKMLtoJOB()">Convert</button>
+  <pre id="output" style="white-space: pre-wrap; margin-top: 1em;"></pre>
+
+  <script>
+    function convertKMLtoJOB() {
+      const fileInput = document.getElementById("kmlFile");
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Please select a KML file.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(e.target.result, "text/xml");
+
+        const jobId = "172617";
+        let output = `.JOB ${jobId} ${jobId}\n.VERSION 1\n`;
+
+        const polygons = xml.getElementsByTagName("Polygon");
+        let polyNumber = 1;
+
+        for (let polygon of polygons) {
+          const coords = polygon.getElementsByTagName("coordinates")[0];
+          if (!coords) continue;
+
+          const coordText = coords.textContent.trim();
+          const coordLines = coordText.split(/\s+/);
+
+          output += `.POL ${polyNumber} #${polyNumber}\n\tINC\n`;
+          coordLines.forEach(line => {
+            const [lon, lat] = line.trim().split(",");
+            output += `\t${lat} ${lon}\n`;
+          });
+
+          polyNumber++;
+        }
+
+        // Show preview and download
+        document.getElementById("output").textContent = output;
+
+        const blob = new Blob([output], { type: "text/plain" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "output.job";
+        link.textContent = "⬇️ Download .JOB File";
+        link.style.display = "block";
+        document.getElementById("output").appendChild(link);
+      };
+
+      reader.readAsText(file);
+    }
+  </script>
+</body>
+</html>
